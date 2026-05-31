@@ -8,58 +8,82 @@ from mathutils import Vector
 # PARAMETERS
 # ============================================================
 
-LOG_LENGTH = 10.0          # meters, Blender units
-BASE_RADIUS = 1.0          # thick end radius
-NUM_LAYERS = 12
-
-SEGMENTS_AROUND = 160
-SEGMENTS_LENGTH = 64
-
-SEED = 43
-
 # ------------------------------------------------------------
-# Ovalnost / ovality
-# ovalnost = ((D - d) / D) * 100
-# Example: 8 means larger diameter and smaller diameter differ by 8%.
+# General model size
 # ------------------------------------------------------------
 
+LOG_LENGTH = 10.0          # Log length in Blender units/meters.
+BASE_RADIUS = 1.0          # Radius at the thick end.
+SEED = 43                  # Random seed for reproducible generation.
+
+# ------------------------------------------------------------
+# Mesh resolution
+# ------------------------------------------------------------
+
+NUM_LAYERS = 12            # Number of internal wood layers.
+
+SEGMENTS_AROUND = 160      # Angular resolution around the log.
+SEGMENTS_LENGTH = 64       # Longitudinal resolution along the log.
+
+# ------------------------------------------------------------
+# Basic log shape
+# ------------------------------------------------------------
+
+# Ovality:
+# ovality = ((D - d) / D) * 100
+# D = larger diameter, d = smaller diameter
 OVALITY_PERCENT = 6.0
 
-# ------------------------------------------------------------
-# Koničnost / tapering
+# Tapering / log taper:
 # pp = (D - d) / l
-# koničnost = (pp / D) * 100
-# ------------------------------------------------------------
-
+# tapering = (pp / D) * 100
 TAPER_PERCENT = 6.0
 
-# ------------------------------------------------------------
-# Bark / lubje
-# ------------------------------------------------------------
+# Global curvature:
+# curvature = h / l
+# curvature percentage = (h / l) * 100
+GLOBAL_CURVATURE_PERCENT = 7.0
+GLOBAL_BEND_COUNT = 3      # 1 = C-like arc, 2 = S-like, 3 = stronger wave.
+
+# Local curvature / small irregularity of the log axis.
+LOCAL_CURVATURE_STRENGTH = 0.065
+LOCAL_CURVATURE_FREQUENCY = 8.0
 
 # ------------------------------------------------------------
-# Fractured bark plate settings
+# Internal wood layer variation
 # ------------------------------------------------------------
-# This mode creates separate bark plates with gaps between them.
-# "normal" = old continuous bark
-# "cracked" = fractured bark plates
+
+# Bounded noise for internal layer boundaries.
+# Keep this small enough so layers do not cross.
+LAYER_NOISE_AMOUNT = 0.18
+LAYER_Z_VARIATION = 1.2
+LAYER_ANGLE_VARIATION = 5
+
+# ------------------------------------------------------------
+# Bark mode
+# ------------------------------------------------------------
+
+# "normal"  = continuous bark shell with sine-based relief
+# "cracked" = separated bark plates with visible gaps
 BARK_MODE = "normal"
 
-# Randomize plate corners so cracks do not form a perfect grid.
-BARK_PLATE_CORNER_ANGLE_JITTER = 0.45
-BARK_PLATE_CORNER_Z_JITTER = 0.35
+BARK_THICKNESS = 0.04
 
-# Randomly shrink/expand each plate independently.
-BARK_PLATE_SIZE_RANDOMNESS = 0.25
+# ------------------------------------------------------------
+# Normal bark relief
+# Used when BARK_MODE = "normal"
+# ------------------------------------------------------------
 
-# Random row/column offsets so vertical cracks do not align.
-BARK_CRACK_ROW_OFFSET_STRENGTH = 0.65
-BARK_CRACK_COLUMN_OFFSET_STRENGTH = 0.35
+BARK_CRACK_FREQUENCY = 16      # Number of vertical bark ridges/grooves.
+BARK_RELIEF_STRENGTH = 0.03    # Relief height.
+BARK_CRACK_STRENGTH = 0.06     # Additional relief multiplier.
 
-# Number of bark plate columns around the log.
+# ------------------------------------------------------------
+# Cracked bark plates
+# Used when BARK_MODE = "cracked"
+# ------------------------------------------------------------
+
 BARK_PLATE_COLUMNS = 34
-
-# Number of bark plate rows along the log.
 BARK_PLATE_ROWS = 26
 
 # Subdivision inside each bark plate.
@@ -67,94 +91,73 @@ BARK_PLATE_ROWS = 26
 BARK_PLATE_SUBDIV_ANGLE = 2
 BARK_PLATE_SUBDIV_Z = 3
 
-# Gap size between bark plates.
+# Gap between bark plates.
 # 0.10 = small cracks, 0.25 = wider cracks.
-BARK_PLATE_GAP_FRACTION = 0.1
+BARK_PLATE_GAP_FRACTION = 0.10
 
-# Random outward expansion of bark plates.
+# Plate shape randomness.
+BARK_PLATE_CORNER_ANGLE_JITTER = 0.45
+BARK_PLATE_CORNER_Z_JITTER = 0.35
+BARK_PLATE_SIZE_RANDOMNESS = 0.25
+
+# Offset rows/columns so cracks do not align perfectly.
+BARK_CRACK_ROW_OFFSET_STRENGTH = 0.65
+BARK_CRACK_COLUMN_OFFSET_STRENGTH = 0.35
+
+# Plate displacement and surface roughness.
 BARK_PLATE_RANDOM_RAISE = 0.055
-
-# Random sideways/z displacement of individual plates.
 BARK_PLATE_RANDOM_TANGENT_SHIFT = 0.025
 BARK_PLATE_RANDOM_Z_SHIFT = 0.055
-
-# Extra roughness inside each plate.
 BARK_PLATE_INTERNAL_ROUGHNESS = 0.025
 
-# Extra detail only for cracked bark.
-# Higher values = more geometry and more visible cracks.
+# Extra cracked-bark relief.
+BARK_CRACK_WIDTH = 0.18
+BARK_CRACK_DEPTH = 0.075
+BARK_PLATE_RAISE = 0.045
+BARK_PLATE_LENGTH_VARIATION = 0.135
+
+# Optional detail multipliers for cracked mode.
 BARK_CRACKED_ANGLE_MULTIPLIER = 2
 BARK_CRACKED_LENGTH_MULTIPLIER = 2
-
-# Width of vertical crack grooves around the bark.
-# Smaller = thinner cracks, larger = wider cracks.
-BARK_CRACK_WIDTH = 0.18
-
-# How deep cracks cut inward.
-BARK_CRACK_DEPTH = 0.075
-
-# How much bark plates are raised outward between cracks.
-BARK_PLATE_RAISE = 0.045
-
-# How broken/uneven the plates are along z.
-BARK_PLATE_LENGTH_VARIATION = 0.135
-BARK_THICKNESS = 0.04
-BARK_CRACK_STRENGTH = 0.06
-BARK_CRACK_FREQUENCY = 16
-BARK_RELIEF_STRENGTH = 0.03
-
-# ------------------------------------------------------------
-# Local curvature / local irregularity
-# ------------------------------------------------------------
-
-LOCAL_CURVATURE_STRENGTH = 0.065
-LOCAL_CURVATURE_FREQUENCY = 8.0
-
-# ------------------------------------------------------------
-# Global curvature / krivost
-# krivost = h / l
-# stopnja krivosti = (h / l) * 100
-# ------------------------------------------------------------
-
-GLOBAL_CURVATURE_PERCENT = 7.0
-GLOBAL_BEND_COUNT = 3       # 1 = one arc/U shape, 2 = S-like shape
-
-# ------------------------------------------------------------
-# Ring noise
-# Must be bounded so layers do not cross.
-# ------------------------------------------------------------
-
-LAYER_NOISE_AMOUNT = 0.18
-LAYER_Z_VARIATION = 1.2
-LAYER_ANGLE_VARIATION = 5
 
 # ------------------------------------------------------------
 # Knots / grče
 # ------------------------------------------------------------
 
 NUM_KNOTS = 6
+
 KNOT_PULLED_LAYER_COUNT = 4
+
 KNOT_RADIUS_MIN = 0.12
 KNOT_RADIUS_MAX = 0.32
+
 KNOT_LENGTH_OUTSIDE_MIN = 0.25
 KNOT_LENGTH_OUTSIDE_MAX = 0.65
+
+# Influence region around each knot.
 KNOT_INFLUENCE_Z = 1.0
 KNOT_INFLUENCE_ANGLE = 0.75
+
+# How strongly internal rings bend near the knot.
 KNOT_RING_BEND_STRENGTH = 0.35
+
+# Bark/surface bump caused by the knot.
 KNOT_SURFACE_BUMP = 0.16
+
 # ------------------------------------------------------------
-# Knot local wrap / fiber avoidance
+# Knot local wrapping / fiber avoidance
 # ------------------------------------------------------------
-# These push nearby layer vertices around the knot in local tangent/z space.
-# Larger values = wood strands bend more around the grča.
+
+# Pushes nearby layer vertices around the knot axis.
+# Higher values = wood strands bend more around the knot.
 KNOT_LOCAL_WRAP_STRENGTH = 0.35
 KNOT_LOCAL_Z_WRAP_STRENGTH = 0.10
 
-# How much stronger the effect gets for outer layers.
+# Outer layers bend more because they grew around the knot.
 KNOT_WRAP_OUTER_LAYER_MULTIPLIER = 2.0
 
-# Inner layers before the knot origin are not affected.
-# Pulled layers and outer layers are affected.
+# Minimum outward component of knot direction.
+# Higher value = knots point more directly outward.
 KNOT_MIN_NORMAL_COMPONENT = 0.55
 
 
