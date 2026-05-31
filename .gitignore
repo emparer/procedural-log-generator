@@ -58,3 +58,7 @@ exports/
 .idea/
 *.swp
 *.swo
+
+*.webloc
+*.zip
+*.tex
