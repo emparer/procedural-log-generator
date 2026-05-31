@@ -410,8 +410,9 @@ def global_curvature_offset(z):
     stopnja krivosti = (h / l) * 100
 
     GLOBAL_BEND_COUNT:
-    1 = one arc / U-like curve
+    1 = one arc
     2 = S-like curve
+    ...
     """
 
     t = z_to_t(z)
@@ -525,7 +526,7 @@ def boundary_radius_normalized(boundary_index, angle, z, knots):
 
 def knot_local_displacement(point, boundary_index, angle, z, knots):
     """
-    Pushes vertices away from the grča axis.
+    Pushes vertices away from the knot axis.
 
     Instead of pushing only in tangent/z directions, this finds the closest
     point on the knot axis and pushes the vertex away from that point.
@@ -584,7 +585,7 @@ def knot_local_displacement(point, boundary_index, angle, z, knots):
         axis_falloff = smooth_falloff(abs(t_axis - 0.45) / 0.75)
 
         # Influence by distance from knot axis.
-        # This radius is the "avoidance area" around the grča.
+        # This radius is the "avoidance area" around the knot.
         avoid_radius = knot.radius * 3.0
 
         distance_falloff = smooth_falloff(distance_from_axis / max(avoid_radius, 0.0001))
@@ -598,7 +599,7 @@ def knot_local_displacement(point, boundary_index, angle, z, knots):
             continue
 
         # Pulled layers and outer layers are affected.
-        # Outer layers bend more because they grew around the grča.
+        # Outer layers bend more because they grew around the knot.
         if pulled_start <= boundary_index <= pulled_end + 1:
             layer_factor = 1.0
         else:
@@ -619,7 +620,7 @@ def knot_local_displacement(point, boundary_index, angle, z, knots):
 
 def knot_axis_points(knot):
     """
-    Returns root_point and end_point of the grča axis.
+    Returns root_point and end_point of the knot axis.
 
     The root starts at the chosen origin layer.
     The end goes outward from the log surface.
@@ -647,7 +648,7 @@ def knot_axis_points(knot):
         knot.z
     ))
 
-    # Surface point where the grča exits the log.
+    # Surface point where the knot exits the log.
     rx_surface, ry_surface = oval_radii(base_radius)
     surface_point = Vector((
         center.x + rx_surface * math.cos(knot.angle),
@@ -672,7 +673,7 @@ def point_on_layer_boundary(boundary_index, angle, z, knots, bark_extra=0.0):
     - optional bark relief
 
     The important new part:
-    vertices near knots are pushed around the grča locally, so the layer
+    vertices near knots are pushed around the knot locally, so the layer
     strands curve around it instead of remaining straight.
     """
 
@@ -955,7 +956,7 @@ def append_layer_shell(vertices, faces, face_materials, layer_index, knots):
 
 def append_bark_shell(vertices, faces, face_materials, knots):
     """
-    Adds lubje/bark.
+    Adds bark.
 
     BARK_MODE:
     - "normal": continuous bark shell
@@ -1345,12 +1346,12 @@ def append_cracked_bark_shell(vertices, faces, face_materials, knots):
 
 
 # ============================================================
-# PULLED-LAYER GRČA GEOMETRY
+# PULLED-LAYER knot GEOMETRY
 # ============================================================
 
 def append_pulled_layer_knot(vertices, faces, face_materials, knot):
     """
-    Creates a grča by pulling existing tree layers outward.
+    Creates a knot by pulling existing tree layers outward.
 
     The pulled layers use the same layer materials as the trunk.
     """
@@ -1559,7 +1560,7 @@ print(f"Global krivost: {GLOBAL_CURVATURE_PERCENT:.2f}%")
 print(f"Global bend count: {GLOBAL_BEND_COUNT}")
 
 for i, knot in enumerate(KNOTS, start=1):
-    print(f"Grča {i}:")
+    print(f"knot {i}:")
     print(f"  z: {knot.z:.2f}")
     print(f"  angle degrees: {math.degrees(knot.angle):.2f}")
     print(f"  origin layer: {knot.origin_layer}")
