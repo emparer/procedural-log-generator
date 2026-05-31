@@ -1495,14 +1495,14 @@ def create_layered_log_mesh():
     faces = []
     face_materials = []
 
-    # 1. Real wood layers.
+    #Real wood layers.
     for layer in range(NUM_LAYERS):
         append_layer_shell(vertices, faces, face_materials, layer, KNOTS)
 
-    # 2. Bark layer.
+    #Bark layer.
     append_bark_shell(vertices, faces, face_materials, KNOTS)
 
-    # 3. Pulled-layer knots.
+    #Pulled-layer knots.
     for knot in KNOTS:
         append_pulled_layer_knot(vertices, faces, face_materials, knot)
 
@@ -1510,7 +1510,7 @@ def create_layered_log_mesh():
     mesh.from_pydata(vertices, [], faces)
     mesh.update()
 
-    obj = bpy.data.objects.new("Layered log with pulled-layer grče", mesh)
+    obj = bpy.data.objects.new("Layered log with pulled-layer knots", mesh)
     bpy.context.collection.objects.link(obj)
 
     add_materials_to_object(obj)
