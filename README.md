@@ -41,21 +41,31 @@ The generated log object will appear in the scene.
 
 ## Parameters
 
-The main parameters are defined at the top of `generate_log.py`.
+The main parameters are defined at the TOP of `generate_log.py`.
 
 Important parameters include:
 
-* `LOG_LENGTH` - length of the log
-* `BASE_RADIUS` - radius at the thick end
-* `NUM_LAYERS` - number of internal wood layers
-* `SEGMENTS_AROUND` - angular mesh resolution
-* `SEGMENTS_LENGTH` - longitudinal mesh resolution
-* `OVALITY_PERCENT` - cross-section ovality
-* `TAPER_PERCENT` - log tapering
-* `GLOBAL_CURVATURE_PERCENT` - global bending strength
-* `LOCAL_CURVATURE_STRENGTH` - local centerline irregularity
-* `BARK_MODE` - `"normal"` or `"cracked"`
-* `NUM_KNOTS` - number of generated knots
+`LOG_LENGTH` - length of the log
+
+`BASE_RADIUS` - radius at the thick end
+
+ `NUM_LAYERS` - number of internal wood layers
+
+ `SEGMENTS_AROUND` - angular mesh resolution
+
+`SEGMENTS_LENGTH` - longitudinal mesh resolution
+
+`OVALITY_PERCENT` - cross-section ovality
+
+`TAPER_PERCENT` - log tapering
+
+`GLOBAL_CURVATURE_PERCENT` - global bending strength
+
+`LOCAL_CURVATURE_STRENGTH` - local centerline irregularity
+
+`BARK_MODE` - `"normal"` or `"cracked"`
+
+`NUM_KNOTS` - number of generated knots
 
 Changing these values produces different log models.
 
