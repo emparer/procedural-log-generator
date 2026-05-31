@@ -9,6 +9,7 @@ Icon?
 .fseventsd
 
 # Blender autosaves / backups
+*.blend
 *.blend1
 *.blend2
 *.blend3

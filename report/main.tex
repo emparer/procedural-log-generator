@@ -1,0 +1,465 @@
+% ---------------------------------------------------------------------------
+% Author guideline and sample document for EG publication using LaTeX2e input
+% D.Fellner, v2, June 1, 2017
+% ---------------------------------------------------------------------------
+
+\documentclass{egpubl}
+
+% --- for Annual CONFERENCE
+% Use ConferencePaper for a normal final article-like seminar submission.
+% If your teacher specifically wants a submission version, change this to:
+% \ConferenceSubmission
+\ConferenceSubmission
+
+% --- for CGF Journal
+% \JournalSubmission
+% \JournalPaper
+
+% --- for CGF Journal: special issue
+% \SpecialIssueSubmission
+% \SpecialIssuePaper
+
+% --- for EG Workshop Proceedings
+% \WsSubmission
+% \WsPaper
+
+\electronicVersion
+
+% !! *please* don't change anything above
+% !! unless you REALLY know what you are doing
+% ------------------------------------------------------------------------
+
+% Slovenian/UTF-8 support
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[slovene,english]{babel}
+\usepackage{subcaption}
+
+% for including figures
+\ifpdf
+  \usepackage[pdftex]{graphicx}
+  \pdfcompresslevel=9
+\else
+  \usepackage[dvips]{graphicx}
+\fi
+
+\PrintedOrElectronic
+
+% prepare for electronic version of your document
+\usepackage{t1enc,dfadobe}
+
+\usepackage{egweblnk}
+\usepackage{cite}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{listings}
+
+% Code listing style
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  tabsize=4,
+  showstringspaces=false
+}
+
+% ------------------------------------------------------------------------
+% Paper title and author
+% ------------------------------------------------------------------------
+
+\title[Procedural Generation of 3D Tree Logs]%
+      {Procedural Generation of 3D Tree Log Models}
+
+\author[K. Jelen]
+       {Kalvin Jelen\\
+        Faculty of Computer and Information Science, University of Ljubljana\\
+        Advanced Computer Graphics}
+
+% ------------------------------------------------------------------------
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper presents a procedural system for generating three-dimensional models of tree logs from user-defined parameters. The goal of the system is to produce diverse and visually convincing log models suitable for rendering, simulation, and game environments. The implemented generator creates a layered log mesh with controllable length, radius, ovality, tapering, global curvature, local irregularity, bark roughness, cracked bark plates, annual-ring-like layers, and knots. The model is generated directly in Blender using Python and consists of separate wood layers, a bark shell, and pulled-layer knot geometry. Parameters such as ovality, tapering, curvature, number of knots, bark crack size, and bark plate randomness allow the user to create different types of logs without manually modelling each variation.
+\end{abstract}
+
+% ------------------------------------------------------------------------
+
+\section{Introduction}
+
+Procedural modelling is a useful technique in computer graphics because it allows complex natural objects to be generated from a compact set of parameters. Natural objects such as trees, bark, stones, terrain, and wood are often irregular, detailed.
+
+The seminar task was to develop a program for procedurally generating 3D models of tree logs based on user-defined parameters. The required input parameters include log length, diameter, ovality, surface roughness, curvature, tapering, number and shape of gnarls, and other relevant characteristics based on the 2020 study of Irena Leban: Mistakes in Wood.~\cite{basa2020napake}
+
+The implemented solution focuses on a layered geometric representation of a log. Instead of generating only a simple cylinder with a bark texture, the program creates multiple internal wood layers, an outer bark layer, cracked bark plates, and knots that pull nearby layers outward.
+
+% ------------------------------------------------------------------------
+
+\section{Background and Wood Characteristics}
+
+Real logs are not perfect cylinders. Their shape is influenced by growth conditions, defects, curvature, branch formation, and bark structure. In forestry terminology, properties such as ovality, tapering, curvature, knots, and surface defects are important when evaluating round wood quality~\cite{basa2020napake}. Educational material on wood defects also describes typical visible irregularities such as knots, cracks, growth defects, and deformation of the trunk~\cite{lebanNapakeLesu}.
+
+\begin{figure}[htb]
+    \centering
+
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{wood_ovality.png}
+        \caption{Ovality}
+        \label{fig:wood-ovality}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{wood_tapering.png}
+        \caption{Tapering}
+        \label{fig:wood-tapering}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{wood_curvature.png}
+        \caption{Curvature}
+        \label{fig:wood-curvature}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{wood_knot.png}
+        \caption{Knots}
+        \label{fig:wood-knots}
+    \end{subfigure}
+
+    \caption{Examples of visible wood characteristics used as inspiration for the procedural model: ovality, tapering, curvature, and knots.~\cite{lebanNapakeLesu}}
+    \label{fig:wood-characteristics}
+\end{figure}
+
+The implemented model does not attempt to simulate biological tree growth physically. Instead, it uses simplified geometric rules inspired by visible wood characteristics. The main goal is visual plausibility and parameter control. The generated log includes:
+
+\begin{itemize}
+    \item non-circular cross-sections - ovality,
+    \item tapering,
+    \item global and local bending,
+    \item irregular internal layer boundaries,
+    \item cracked bark plates with gaps,
+    \item knots with local deformation of nearby wood layers and bark.
+\end{itemize}
+
+% ------------------------------------------------------------------------
+
+\section{Method}
+
+The generator is implemented as a Blender Python script. It directly creates mesh vertices, faces, materials and lighting. The program starts from a set of global parameters and then constructs the final object in following order:
+
+\begin{enumerate}
+    \item generation of internal wood layer meshes,
+    \item modifying ovality of the meshes (figure 1, a),
+    \item modifying the slope of the meshes (tapering, figure 1, b),
+    \item modifying the meshes for local curvature,
+    \item modifying the meshes for global curvature (figure 1, c),
+    \item generation of bark layer,
+    \item generation of knots and local deformation in the layers and bark (figure 1, d).
+\end{enumerate}
+
+The final mesh is assembled as a single Blender object. The internal wood layers are still present as geometry, but they are no longer stored as separate Blender objects.
+
+% ------------------------------------------------------------------------
+
+\subsection{Main Parameters}
+
+There are many parameters but the main geometric parameters used by the generator are:
+
+\begin{itemize}
+    \item \texttt{LOG\_LENGTH}: total length of the log,
+    \item \texttt{BASE\_RADIUS}: radius at the thick end,
+    \item \texttt{NUM\_LAYERS}: number of internal wood layers,
+    \item \texttt{SEGMENTS\_AROUND}: angular resolution,
+    \item \texttt{SEGMENTS\_LENGTH}: longitudinal resolution,
+    \item \texttt{OVALITY\_PERCENT}: percentage of cross-section ovality,
+    \item \texttt{TAPER\_PERCENT}: percentage of tapering,
+    \item \texttt{GLOBAL\_CURVATURE\_PERCENT}: strength of global bending,
+    \item \texttt{NUM\_KNOTS}: number of generated knots,
+    \item \texttt{BARK\_MODE}: continuous or cracked bark mode.
+\end{itemize}
+
+For the current version, the generated log has length \(10.0\), base radius \(1.0\), twelve internal layers, three knots, ovality of \(8\%\), tapering of \(2\%\), and global curvature of \(4\%\).
+
+% ------------------------------------------------------------------------
+
+\subsection{Tapering}
+
+The radius of the log changes along its length. The implementation interprets tapering according to the following relation:
+
+\[
+pp = \frac{D - d}{l},
+\]
+
+where \(D\) is the larger diameter, \(d\) is the smaller diameter, and \(l\) is the log length. The tapering percentage is then interpreted as
+
+\[
+\text{koni\v{c}nost} = \frac{pp}{D} \cdot 100.
+\]
+
+In the implementation, the base diameter is computed from the base radius. The diameter decreases linearly along the normalized coordinate \(t\), where \(t=0\) is one end of the log and \(t=1\) is the other end.
+
+% ------------------------------------------------------------------------
+
+\subsection{Ovality}
+
+Ovality is implemented by using different radii in the \(x\) and \(y\) directions. The larger radius is kept in the \(x\) direction, while the smaller radius is reduced according to the ovality percentage:
+
+\[
+\text{ovalnost} = \frac{D - d}{D} \cdot 100.
+\]
+
+This creates an elliptical cross-section instead of a circular one. The implementation uses this in the function \texttt{oval\_radii(radius)}.
+
+% ------------------------------------------------------------------------
+
+\subsection{Global and Local Curvature}
+
+The log centerline is not straight (Figure 1c). The global curvature is implemented as a sinusoidal displacement of the centerline along the log. The parameter \texttt{GLOBAL\_BEND\_COUNT} controls whether the log forms a single arc (C-shape) or a dual arc, S-like shape.
+
+In addition to global curvature, the implementation adds local irregularity/local curvature using smooth sine noise.
+
+The centerline position at height \(z\) is computed as:
+
+\[
+C(z) = (0,0,z) + G(z) + L(z),
+\]
+
+where \(G(z)\) is the global curvature offset and \(L(z)\) is the local noise offset.
+
+% ------------------------------------------------------------------------
+
+\subsection{Layer-Based Wood Structure}
+
+The log is built from multiple nested layer shells. Each shell lies between two layer boundaries. This produces a visible layered structure similar to annual rings. The boundaries are not perfectly circular; each boundary has smooth noise in the angular and longitudinal directions.
+
+To avoid layer crossing, each boundary is based on its normalized layer index and only receives a bounded noise offset. The function \texttt{boundary\_radius\_normalized} computes the normalized radius of each layer boundary.
+
+Different materials are assigned to alternating layers. Heartwood core, light wood ring and dark wood ring.
+
+This makes the internal structure visible when the log ends are viewed.
+
+% ------------------------------------------------------------------------
+
+\subsection{Bark Generation}
+
+The bark can be generated in two modes. The normal mode creates a continuous bark shell with procedural relief. The cracked mode creates many individual bark plates separated by visible gaps. The cracked bark mode is the main version used in the current implementation.
+
+In cracked mode, the bark is divided into rows along the log and columns around the circumference. Each bark plate is randomly scaled, shifted, and warped. The plate corners receive random angular and longitudinal jitter, so the cracks do not form a perfect grid. Each plate has an outer surface, side walls, and a lower face near the wood surface.
+
+The most important cracked bark parameters are:
+
+\begin{itemize}
+    \item \texttt{BARK\_PLATE\_COLUMNS},
+    \item \texttt{BARK\_PLATE\_ROWS},
+    \item \texttt{BARK\_PLATE\_GAP\_FRACTION},
+    \item \texttt{BARK\_PLATE\_SIZE\_RANDOMNESS},
+    \item \texttt{BARK\_PLATE\_RANDOM\_RAISE},
+    \item \texttt{BARK\_PLATE\_INTERNAL\_ROUGHNESS}.
+\end{itemize}
+
+This approach produces a bark surface made of broken chunks instead of a simple displaced cylinder.
+
+% ------------------------------------------------------------------------
+
+\subsection{Knot Generation}
+
+Knots are generated as local features where internal wood layers are pulled outward. Each knot has:
+
+\begin{itemize}
+    \item a position along the log,
+    \item an angular position around the log,
+    \item an outward direction,
+    \item a radius,
+    \item an outside length,
+    \item an origin layer,
+    \item a number of pulled layers,
+    \item angular and longitudinal influence ranges.
+\end{itemize}
+
+The knot axis starts inside the log at the chosen origin layer and extends outward from the surface. The generator creates additional tubular geometry for pulled layers and also deforms nearby trunk layers around the knot axis.
+
+The local deformation is computed by projecting each nearby vertex onto the knot axis. The vertex is then pushed away from the closest point on the knot axis. This creates the visual impression that wood layers flow around the knot instead of passing straight through it.
+
+\begin{figure*}[htb]
+    \centering
+
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{tapering.png}
+        \caption{Tapering}
+        \label{fig:feature-tapering}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{ovality.png}
+        \caption{Ovality}
+        \label{fig:feature-ovality}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{curvature.png}
+        \caption{Global curvature}
+        \label{fig:feature-curvature}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{layers.png}
+        \caption{Layered wood}
+        \label{fig:feature-local-curvature}
+    \end{subfigure}
+
+    \vspace{0.4em}
+
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{bark.png}
+        \caption{Bark generation}
+        \label{fig:feature-layers}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{knots.png}
+        \caption{Knot generation}
+        \label{fig:feature-bark}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{final1.png}
+        \caption{Example log 1}
+        \label{fig:feature-knot}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \centering
+        \includegraphics[height=0.17\textheight,keepaspectratio]{final2.png}
+        \caption{Example log 2}
+        \label{fig:feature-final}
+    \end{subfigure}
+
+    \caption{Overview of the main procedural features used by the generator: tapering, ovality, global and local curvature, internal wood layers, bark structure, knots, and 2 examples of everything combined.}
+    \label{fig:procedural-features}
+\end{figure*}
+
+% ------------------------------------------------------------------------
+
+\section{Implementation}
+
+The implementation is contained in a Blender Python script. The most important functions are:
+
+\begin{itemize}
+    \item \texttt{radius\_at\_z}: computes tapering,
+    \item \texttt{oval\_radii}: computes elliptical cross-section radii,
+    \item \texttt{centerline\_at\_z}: combines global and local curvature,
+    \item \texttt{boundary\_radius\_normalized}: computes noisy layer boundaries,
+    \item \texttt{point\_on\_layer\_boundary}: creates a mesh point on a layer,
+    \item \texttt{append\_layer\_shell}: creates one internal wood shell,
+    \item \texttt{append\_cracked\_bark\_shell}: creates broken bark plates,
+    \item \texttt{append\_pulled\_layer\_knot}: creates knot geometry,
+    \item \texttt{create\_layered\_log\_mesh}: assembles the final mesh.
+\end{itemize}
+
+A simplified example of the final mesh creation process is shown below:
+
+\begin{lstlisting}[language=Python]
+def create_layered_log_mesh():
+    vertices = []
+    faces = []
+    face_materials = []
+
+    # 1. Real wood layers.
+    for layer in range(NUM_LAYERS):
+        append_layer_shell(vertices, faces, face_materials, layer, KNOTS)
+
+    # 2. Bark layer.
+    append_bark_shell(vertices, faces, face_materials, KNOTS)
+
+    # 3. Pulled-layer knots.
+    for knot in KNOTS:
+        append_pulled_layer_knot(vertices, faces, face_materials, knot)
+
+    mesh = bpy.data.meshes.new("Layered procedural log mesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+
+    obj = bpy.data.objects.new("Layered log with pulled-layer grce", mesh)
+    bpy.context.collection.objects.link(obj)
+
+    add_materials_to_object(obj)
+
+    return obj
+\end{lstlisting}
+
+% ------------------------------------------------------------------------
+
+\section{Results}
+
+The current version successfully generates a detailed log model with visible internal layers, ovality, tapering, global curvature, local curvature, fractured bark, and knots. The generated mesh is more complex than a simple cylinder-based log because it contains separate geometric structures for wood layers, bark plates, and knots that interract with each other.
+
+The procedural parameters make it possible to create different logs by changing only numeric values. For example, increasing the number of bark plate rows and columns produces finer cracked bark, while increasing the bark gap fraction makes the cracks more visible. Increasing global curvature produces a more bent log, and changing the number of knots modifies the complexity of the surface.
+
+% Uncomment and replace with your rendered images when available.
+%
+% \begin{figure}[htb]
+%   \centering
+%   \includegraphics[width=\linewidth]{figures/log_render.png}
+%   \caption{Generated procedural tree log with cracked bark and knots.}
+%   \label{fig:log-render}
+% \end{figure}
+%
+% \begin{figure}[htb]
+%   \centering
+%   \includegraphics[width=\linewidth]{figures/log_cross_section.png}
+%   \caption{Visible layered structure of the generated log.}
+%   \label{fig:log-cross-section}
+% \end{figure}
+
+% ------------------------------------------------------------------------
+
+\section{Discussion}
+
+The main advantage of the implementation is that the log is generated from actual geometry, each layer simulated individually, rather than only from a texture. This makes the final model be closer to real life logs.
+
+However, the current implementation also has limitations. It is not fit for every type of tree. Gnarls are implemented as only one type. A knot can be represented either as a sound/intergrown knot, where the surrounding layers bend continuously around the branch, or as a loose knot, where the knot is separated more clearly from the surrounding wood and may leave a visible hole. For trees with intergrown knots this model is not suitable.
+
+There is also many mistakes and phenomena in wood that this model does not take into account. For example grooved layers~\cite{lebanNapakeLesu}, double pith~\cite{lebanNapakeLesu}, spirality~\cite{lebanNapakeLesu}, compression wood~\cite{lebanNapakeLesu}, tension wood~\cite{lebanNapakeLesu} and many more.
+
+% ------------------------------------------------------------------------
+
+\section{Conclusion}
+
+This seminar project implemented a procedural generator for 3D tree log models in Blender. The generator uses user-defined parameters to control length, radius, ovality, tapering, curvature, bark structure, internal layers, and knots. The final model consists of integrated layered wood shells, fractured bark plates, and pulled-layer knot geometry.
+
+The result demonstrates that natural wood characteristics can be approximated by constructing the log from multiple mesh layers and progressively applying geometric deformations until the desired appearance is reached. This layered procedural approach allows the generation of varied log models suitable for rendering, simulation, and game environments.
+
+% ------------------------------------------------------------------------
+
+\begin{thebibliography}{9}
+
+\bibitem{basa2020napake}
+Mirko Ba\v{s}a.
+\newblock \emph{Napake lesa: priro\v{c}nik za prepoznavanje napak okroglega lesa: opisi najpomembnej\v{s}ih napak lesa, njihovo merjenje in dolo\v{c}anje kvarnega vpliva na kakovost}.
+\newblock Gozdarski in\v{s}titut Slovenije, zalo\v{z}ba Silva Slovenica, 2020.
+\newblock URL: \url{https://wcm.gozdis.si/downloads/Napake_lesa_Net4Forest_web.pdf}
+
+\bibitem{lebanNapakeLesu}
+Irena Leban.
+\newblock \emph{Napake v lesu}.
+\newblock URL: \url{https://cpi.si/wp-content/uploads/2020/08/5-NAPAKE_LESU.pdf}
+
+\end{thebibliography}
+
+\end{document}
