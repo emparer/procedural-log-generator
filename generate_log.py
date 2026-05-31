@@ -4,30 +4,30 @@ import random
 from dataclasses import dataclass
 from mathutils import Vector
 
-# ============================================================
+# =========================================================
 # PARAMETERS
-# ============================================================
+# =========================================================
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # General model size
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 LOG_LENGTH = 10.0          # Log length in Blender units/meters.
 BASE_RADIUS = 1.0          # Radius at the thick end.
 SEED = 43                  # Random seed for reproducible generation.
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # Mesh resolution
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 NUM_LAYERS = 12            # Number of internal wood layers.
 
 SEGMENTS_AROUND = 160      # Angular resolution around the log.
 SEGMENTS_LENGTH = 64       # Longitudinal resolution along the log.
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # Basic log shape
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 # Ovality:
 # ovality = ((D - d) / D) * 100
@@ -49,9 +49,9 @@ GLOBAL_BEND_COUNT = 3      # 1 = C-like arc, 2 = S-like, 3 = stronger wave.
 LOCAL_CURVATURE_STRENGTH = 0.065
 LOCAL_CURVATURE_FREQUENCY = 8.0
 
-# ------------------------------------------------------------
+# ----------------------------------------------------------
 # Internal wood layer variation
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 # Bounded noise for internal layer boundaries.
 # Keep this small enough so layers do not cross.
@@ -59,9 +59,9 @@ LAYER_NOISE_AMOUNT = 0.18
 LAYER_Z_VARIATION = 1.2
 LAYER_ANGLE_VARIATION = 5
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # Bark mode
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 # "normal"  = continuous bark shell with sine-based relief
 # "cracked" = separated bark plates with visible gaps
@@ -69,19 +69,19 @@ BARK_MODE = "normal"
 
 BARK_THICKNESS = 0.04
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # Normal bark relief
 # Used when BARK_MODE = "normal"
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 BARK_CRACK_FREQUENCY = 16      # Number of vertical bark ridges/grooves.
 BARK_RELIEF_STRENGTH = 0.03    # Relief height.
 BARK_CRACK_STRENGTH = 0.06     # Additional relief multiplier.
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # Cracked bark plates
 # Used when BARK_MODE = "cracked"
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 BARK_PLATE_COLUMNS = 34
 BARK_PLATE_ROWS = 26
@@ -120,9 +120,9 @@ BARK_PLATE_LENGTH_VARIATION = 0.135
 BARK_CRACKED_ANGLE_MULTIPLIER = 2
 BARK_CRACKED_LENGTH_MULTIPLIER = 2
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # Knots / grče
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 NUM_KNOTS = 6
 
@@ -144,9 +144,9 @@ KNOT_RING_BEND_STRENGTH = 0.35
 # Bark/surface bump caused by the knot.
 KNOT_SURFACE_BUMP = 0.16
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 # Knot local wrapping / fiber avoidance
-# ------------------------------------------------------------
+# ---------------------------------------------------------
 
 # Pushes nearby layer vertices around the knot axis.
 # Higher values = wood strands bend more around the knot.
@@ -161,17 +161,17 @@ KNOT_WRAP_OUTER_LAYER_MULTIPLIER = 2.0
 KNOT_MIN_NORMAL_COMPONENT = 0.55
 
 
-# ============================================================
+# ==========================================================
 # CLEAN SCENE
-# ============================================================
+# ==========================================================
 
 #bpy.ops.object.select_all(action="SELECT")
 #bpy.ops.object.delete()
 
 
-# ============================================================
+# ==========================================================
 # MATERIALS
-# ============================================================
+# ==========================================================
 
 def make_material(name, color):
     mat = bpy.data.materials.new(name)
@@ -197,9 +197,9 @@ MATERIALS = {
 }
 
 
-# ============================================================
+# ========================================================
 # UTILS
-# ============================================================
+# ========================================================
 
 def angular_distance(a, b):
     """
@@ -555,11 +555,11 @@ def knot_local_displacement(point, boundary_index, angle, z, knots):
 
         axis_dir = axis.normalized()
 
-        # Project current vertex onto the knot axis.
+        #Project current vertex onto the knot axis.
         rel = result - root_point
         along = rel.dot(axis_dir)
 
-        # Clamp projection to the actual knot segment.
+        #Clamp projection to the actual knot segment.
         along_clamped = max(0.0, min(axis_length, along))
 
         closest_point = root_point + axis_dir * along_clamped
@@ -568,8 +568,6 @@ def knot_local_displacement(point, boundary_index, angle, z, knots):
         distance_from_axis = away_vec.length
 
         if distance_from_axis <= 0.0001:
-            # Rare case: point is exactly on the axis.
-            # Use surface normal as fallback.
             away_dir = Vector((
                 math.cos(knot.angle),
                 math.sin(knot.angle),
@@ -578,19 +576,19 @@ def knot_local_displacement(point, boundary_index, angle, z, knots):
         else:
             away_dir = away_vec.normalized()
 
-        # Influence along knot length.
+        #Influence along knot length.
         t_axis = along_clamped / axis_length
 
-        # Knot is strongest inside/near surface, weaker at outside tip.
+        #Knot is strongest inside/near surface, weaker at outside tip.
         axis_falloff = smooth_falloff(abs(t_axis - 0.45) / 0.75)
 
-        # Influence by distance from knot axis.
-        # This radius is the "avoidance area" around the knot.
+        #Influence by distance from knot axis.
+        #This radius is the "avoidance area" around the knot.
         avoid_radius = knot.radius * 3.0
 
         distance_falloff = smooth_falloff(distance_from_axis / max(avoid_radius, 0.0001))
 
-        # Also limit by z/angle neighborhood, so it does not deform the whole log.
+        #Also limit by z/angle neighborhood, so it does not deform the whole log.
         local_influence = knot.influence(angle, z)
 
         influence = axis_falloff * distance_falloff * local_influence
@@ -598,15 +596,15 @@ def knot_local_displacement(point, boundary_index, angle, z, knots):
         if influence <= 0.0:
             continue
 
-        # Pulled layers and outer layers are affected.
-        # Outer layers bend more because they grew around the knot.
+        #Pulled layers and outer layers are affected.
+        #Outer layers bend more because they grew around the knot.
         if pulled_start <= boundary_index <= pulled_end + 1:
             layer_factor = 1.0
         else:
             outer_t = (boundary_index - pulled_end) / max(1, NUM_LAYERS - pulled_end)
             layer_factor = 1.0 + KNOT_WRAP_OUTER_LAYER_MULTIPLIER * max(0.0, outer_t)
 
-        # Strongest push amount.
+        #Strongest push amount.
         push_amount = (
             KNOT_LOCAL_WRAP_STRENGTH *
             knot.radius *
@@ -637,7 +635,7 @@ def knot_axis_points(knot):
     base_radius = radius_at_z(knot.z)
     wood_radius = max(0.01, base_radius - BARK_THICKNESS)
 
-    # Root starts at the chosen layer inside the log.
+    #Root starts at the chosen layer inside the log.
     origin_fraction = knot.origin_layer / NUM_LAYERS
     origin_radius = wood_radius * origin_fraction
 
@@ -648,7 +646,7 @@ def knot_axis_points(knot):
         knot.z
     ))
 
-    # Surface point where the knot exits the log.
+    #Surface point where the knot exits the log.
     rx_surface, ry_surface = oval_radii(base_radius)
     surface_point = Vector((
         center.x + rx_surface * math.cos(knot.angle),
@@ -681,7 +679,7 @@ def point_on_layer_boundary(boundary_index, angle, z, knots, bark_extra=0.0):
 
     base_radius = radius_at_z(z)
 
-    # Wood radius excludes bark.
+    #Wood radius excludes bark.
     wood_radius = max(0.01, base_radius - BARK_THICKNESS)
 
     if boundary_index == NUM_LAYERS:
@@ -698,8 +696,7 @@ def point_on_layer_boundary(boundary_index, angle, z, knots, bark_extra=0.0):
 
     point = Vector((x, y, z))
 
-    # Do not wrap the exact center tiny core too much.
-    # Everything from the knot origin layer outward can bend around grče.
+    #Do not wrap the exact center tiny core too much.
     point = knot_local_displacement(
         point=point,
         boundary_index=boundary_index,
@@ -867,13 +864,13 @@ def append_layer_shell(vertices, faces, face_materials, layer_index, knots):
 
     material_name = material_for_layer(layer_index)
 
-    # Avoid degenerate center hole for the core.
+    #Avoid degenerate center hole for the core.
     inner_boundary = layer_index
     outer_boundary = layer_index + 1
 
     start_index = len(vertices)
 
-    # For every z and angle, create outer and inner boundary vertices.
+    #For every z and angle, create outer and inner boundary vertices.
     for iz in range(SEGMENTS_LENGTH + 1):
         tz = iz / SEGMENTS_LENGTH
         z = z_min + tz * LOG_LENGTH
@@ -889,7 +886,7 @@ def append_layer_shell(vertices, faces, face_materials, layer_index, knots):
             )
 
             if inner_boundary == 0:
-                # Tiny non-zero radius avoids degenerate geometry at center.
+                #Tiny non-zero radius avoids degenerate geometry at center.
                 center = centerline_at_z(z)
                 tiny_radius = radius_at_z(z) * 0.002
                 rx, ry = oval_radii(tiny_radius)
@@ -911,7 +908,7 @@ def append_layer_shell(vertices, faces, face_materials, layer_index, knots):
 
     row_size = SEGMENTS_AROUND * 2
 
-    # Side faces along length: outer and inner surface.
+    #Side faces along length: outer and inner surface.
     for iz in range(SEGMENTS_LENGTH):
         for ia in range(SEGMENTS_AROUND):
             outer_a = start_index + iz * row_size + ia * 2
@@ -1426,7 +1423,7 @@ def append_pulled_layer_knot(vertices, faces, face_materials, knot):
 
             branch_center = root_point.lerp(end, t)
 
-            # Slight taper outward.
+            #Slight taper outward.
             taper = 1.10 - 0.30 * t
 
             inner_r = inner_r_base * taper
@@ -1472,7 +1469,7 @@ def append_pulled_layer_knot(vertices, faces, face_materials, knot):
                 faces.append((inner_b, inner_a, inner_d, inner_c))
                 face_materials.append(material_name)
 
-        # Outside cap for each pulled layer.
+        #Outside cap for each pulled layer.
         cap_iz = length_segments
 
         for ia in range(segments):
