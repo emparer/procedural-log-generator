@@ -1,0 +1,59 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Blender autosaves / backups
+*.blend1
+*.blend2
+*.blend3
+*.blend4
+*.blend@
+*.blend~
+*.blend.temp
+*.blend.tmp
+
+# Blender cache / simulation data
+.blender/
+__pycache__/
+*.pyc
+*.pyo
+
+# Render/output folders
+renders/tmp/
+renders/cache/
+output/
+exports/
+
+# Large Blender project files - uncomment if you do not want to commit .blend files
+# *.blend
+
+# LaTeX build files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.xdv
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
